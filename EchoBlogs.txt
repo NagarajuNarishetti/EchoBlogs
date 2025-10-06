@@ -1,0 +1,131 @@
+# 📘 EchoBlogs – Multitenant Blogging Platform  
+
+## 🚀 Project Aim  
+EchoBlogs is a **multitenant blog application** where:  
+- Each tenant (organization/user) has its own **isolated schema** in the database.  
+- Users can **register**, which automatically provisions a new tenant (schema + tables).  
+- Each tenant manages its own blog posts, while visitors can browse content per tenant.  
+
+This ensures **data isolation** while allowing multiple bloggers/organizations to use the same platform.  
+
+---
+
+## 🛠 Tech Stack  
+
+- **Backend Framework**: Django 5.x  
+- **Multitenancy**: django-tenants  
+- **Database**: PostgreSQL 14+  
+- **Frontend Templates**: Django Templates (HTML, CSS, Bootstrap)  
+- **Language**: Python 3.12+  
+- **Virtual Environment**: venv  
+- **Authentication**: Django’s built-in authentication system  
+
+---
+
+## 📂 Project Structure  
+
+EchoBlogs/
+│── EchoBlogs/               # Main project settings
+│   ├── __init__.py
+│   ├── settings.py
+│   ├── urls.py
+│   ├── wsgi.py
+│   └── asgi.py
+│
+│── accounts/                # Handles registration & login
+│   ├── views.py
+│   ├── urls.py
+│   ├── templates/accounts/
+│       ├── register.html
+│       ├── login.html
+│       └── error.html
+│
+│── blog/                    # Tenant-specific blog app
+│   ├── models.py
+│   ├── views.py
+│   ├── urls.py
+│   ├── templates/blog/
+│       ├── home.html
+│       ├── post_list.html
+│       └── post_detail.html
+│
+│── tenants/                 # Tenant model definitions
+│   ├── models.py (Client, Domain)
+│   ├── migrations/
+│
+│── templates/               # Global templates
+│   └── base.html
+│
+│── manage.py
+└── requirements.txt
+
+---
+
+## ⚙️ Requirements  
+
+requirements.txt:
+
+Django>=5.2
+django-tenants>=3.6
+psycopg2-binary>=2.9
+
+---
+
+## 🔧 Setup Instructions  
+
+### 1. Clone & Install Dependencies  
+git clone <repo-url>
+cd EchoBlogs
+python -m venv .venv
+.venv\Scripts\activate   # (Windows)
+source .venv/bin/activate # (Linux/Mac)
+pip install -r requirements.txt
+
+### 2. Database Setup (PostgreSQL)  
+CREATE DATABASE echoblogsdb;
+CREATE USER postgres WITH PASSWORD 'nagi';
+GRANT ALL PRIVILEGES ON DATABASE echoblogsdb TO postgres;
+
+### 3. Apply Migrations  
+python manage.py makemigrations tenants
+python manage.py migrate_schemas --shared
+
+### 4. Run Development Server  
+python manage.py runserver
+
+Now go to:  
+http://127.0.0.1:8000/accounts/register/
+
+---
+
+## 📝 Tenant Workflow  
+
+1. Register → Schema auto-created  
+2. Login → Access tenant  
+3. Each tenant can post blogs  
+
+Example:  
+user1.localhost:8000 → user1 blog  
+user2.localhost:8000 → user2 blog  
+
+---
+
+## 🛡 Error Handling  
+- Missing tenant domain → error.html  
+- Invalid schema creation → rollback  
+
+---
+
+## 🎯 Future Improvements  
+- UI for managing tenants  
+- Blog editor (Markdown/WYSIWYG)  
+- API endpoints (Django REST Framework)  
+- Deploy with Docker & Nginx  
+- Multi-domain mapping  
+
+---
+
+## 💡 Project Goals  
+- Simple dynamic multitenancy  
+- Data isolation  
+- Full UI-based schema creation  

@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+
+{% block title %}EchoBlogs - Multitenant Blogging Platform{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero-section">
+    <div class="container">
+        <h1 class="display-4 fw-bold mb-4">
+            <i class="bi bi-chat-dots-fill me-3"></i>Welcome to EchoBlogs
+        </h1>
+        <p class="lead mb-4">
+            Create your own isolated blog space in our multitenant platform.
+            Each user gets their own schema with complete data isolation.
+        </p>
+        {% if not user.is_authenticated %}
+        <div class="d-flex gap-3 justify-content-center flex-wrap">
+            <a href="{% url 'register' %}" class="btn btn-primary btn-lg">
+                <i class="bi bi-person-plus me-2"></i>Get Started
+            </a>
+            <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Login
+            </a>
+        </div>
+        {% else %}
+        <div class="d-flex gap-3 justify-content-center flex-wrap">
+            <a href="{% url 'post_list' %}" class="btn btn-primary btn-lg">
+                <i class="bi bi-journal-text me-2"></i>View My Blog
+            </a>
+            <a href="{% url 'post_create' %}" class="btn btn-outline-light btn-lg">
+                <i class="bi bi-plus-circle me-2"></i>Create Post
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Features Section -->
+<div class="row g-4 mb-5">
+    <div class="col-md-4">
+        <div class="card feature-card h-100">
+            <div class="card-body text-center p-4">
+                <div class="mb-3">
+                    <i class="bi bi-shield-check text-primary" style="font-size: 3rem;"></i>
+                </div>
+                <h5 class="card-title">Data Isolation</h5>
+                <p class="card-text">
+                    Each tenant has their own isolated database schema, ensuring complete data privacy and security.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card feature-card h-100">
+            <div class="card-body text-center p-4">
+                <div class="mb-3">
+                    <i class="bi bi-lightning-charge text-warning" style="font-size: 3rem;"></i>
+                </div>
+                <h5 class="card-title">Easy Setup</h5>
+                <p class="card-text">
+                    Register and get your own blog space instantly. No complex configuration required.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card feature-card h-100">
+            <div class="card-body text-center p-4">
+                <div class="mb-3">
+                    <i class="bi bi-globe text-success" style="font-size: 3rem;"></i>
+                </div>
+                <h5 class="card-title">Custom Domains</h5>
+                <p class="card-text">
+                    Each user gets their own subdomain for easy access to their blog content.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- How it Works Section -->
+<div class="card mb-5">
+    <div class="card-body p-5">
+        <h3 class="text-center mb-4">
+            <i class="bi bi-gear-fill text-primary me-2"></i>How It Works
+        </h3>
+        <div class="row g-4">
+            <div class="col-md-3 text-center">
+                <div class="mb-3">
+                    <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center"
+                        style="width: 60px; height: 60px;">
+                        <span class="fw-bold">1</span>
+                    </div>
+                </div>
+                <h6>Register</h6>
+                <p class="text-muted small">Create your account and get a unique tenant space</p>
+            </div>
+
+            <div class="col-md-3 text-center">
+                <div class="mb-3">
+                    <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center"
+                        style="width: 60px; height: 60px;">
+                        <span class="fw-bold">2</span>
+                    </div>
+                </div>
+                <h6>Schema Created</h6>
+                <p class="text-muted small">Your isolated database schema is automatically created</p>
+            </div>
+
+            <div class="col-md-3 text-center">
+                <div class="mb-3">
+                    <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center"
+                        style="width: 60px; height: 60px;">
+                        <span class="fw-bold">3</span>
+                    </div>
+                </div>
+                <h6>Start Blogging</h6>
+                <p class="text-muted small">Create and manage your blog posts in your space</p>
+            </div>
+
+            <div class="col-md-3 text-center">
+                <div class="mb-3">
+                    <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center"
+                        style="width: 60px; height: 60px;">
+                        <span class="fw-bold">4</span>
+                    </div>
+                </div>
+                <h6>Share</h6>
+                <p class="text-muted small">Access your blog via your custom subdomain</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if user.is_authenticated %}
+<!-- Quick Actions for Logged-in Users -->
+<div class="card">
+    <div class="card-body p-4">
+        <h4 class="mb-3">
+            <i class="bi bi-speedometer2 text-primary me-2"></i>Quick Actions
+        </h4>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <a href="{% url 'post_create' %}" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-plus-circle me-2"></i>Create New Post
+                </a>
+            </div>
+            <div class="col-md-6">
+                <a href="{% url 'post_list' %}" class="btn btn-outline-success w-100">
+                    <i class="bi bi-list-ul me-2"></i>View All Posts
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
