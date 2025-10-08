@@ -13,6 +13,7 @@ SHARED_APPS = (
     'django_tenants',      # must be first
     'tenants',             # tenant control app
     'accounts',            # accounts app (registration happens on public schema)
+    'rest_framework_simplejwt.token_blacklist',  # JWT blacklist tables live in public schema
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -27,7 +28,9 @@ TENANT_APPS = (
 )
 
 # Combine apps correctly using tuples
-INSTALLED_APPS = SHARED_APPS + TENANT_APPS
+INSTALLED_APPS = SHARED_APPS + TENANT_APPS + (
+    'rest_framework',
+)
 
 # ---------------- DATABASE ----------------
 DATABASES = {
@@ -93,3 +96,25 @@ STATICFILES_DIRS = [BASE_DIR / "static"]  # optional: your static folder
 
 # ---------------- DEFAULT AUTO FIELD ----------------
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ---------------- DRF SETTINGS ----------------
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.AllowAny',
+    ),
+}
+
+# ---------------- JWT SETTINGS ----------------
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}

@@ -66,7 +66,7 @@ EchoBlogs/
 └── manage.py                 # Django management script
 ```
 
-## 🚀 Quick Start
+## 🚀 Quick Start (API-first)
 
 ### Prerequisites
 
@@ -136,13 +136,21 @@ EchoBlogs/
    python manage.py runserver
    ```
 
-9. **Access the application**
+9. **Test the API using Postman**
+   - Base public URL: `http://localhost:8000`
+   - After registration, your tenant base URL: `http://<username>.localhost:8000`
+   - Follow the step-by-step guide in `docs/API.md` to:
+     - Register or login to obtain JWT tokens
+     - Call protected endpoints with `Authorization: Bearer <access>`
+     - Use tenant subdomain for blog posts APIs
+
+10. **Access the application (optional UI)**
    - Main site: http://127.0.0.1:8000/
    - Admin: http://127.0.0.1:8000/admin/
 
 ## 📖 Documentation
 
-- [API Documentation](docs/API.md) - Complete API reference
+- [API Documentation](docs/API.md) - Complete API reference with Postman steps
 - [Architecture Guide](docs/ARCHITECTURE.md) - Detailed architecture explanation
 - [Tech Stack](docs/TECH_STACK.md) - Technology choices and rationale
 - [Tenant Creation](docs/TENANT_CREATION.md) - How tenant creation works

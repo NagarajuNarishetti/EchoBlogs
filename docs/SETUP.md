@@ -240,6 +240,12 @@ python manage.py runserver
 - **URL**: http://username.localhost:8000/
 - **Purpose**: Individual user blogs (after registration)
 
+### API and Postman Quick Test
+- Register on public domain: `POST http://localhost:8000/api/auth/register/`
+- Login on public domain: `POST http://localhost:8000/api/auth/login/`
+- Use tenant domain for posts: `GET http://<username>.localhost:8000/api/posts/`
+- See `docs/API.md` for full Postman instructions and environment variables
+
 ## 🐳 Docker Setup (Alternative)
 
 ### 1. Create Dockerfile
