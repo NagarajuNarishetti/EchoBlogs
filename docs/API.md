@@ -11,13 +11,15 @@ Important: EchoBlogs is multitenant. Registration and login happen on the public
 Auth uses JWT (JSON Web Tokens) via SimpleJWT. Obtain tokens with login or register, then send `Authorization: Bearer <access_token>` on protected requests. Refresh tokens with `/auth/refresh/`.
 
 ### Register
-- URL: `POST /api/auth/register/`
-- Body (JSON):
+- Method: POST
+- URL: http://localhost:8000/api/auth/register/
+- Headers:
+  - Content-Type: application/json
+- Body (raw JSON):
 ```json
 { "username": "john", "email": "john@example.com", "password": "secret123" }
 ```
-- Creates user, tenant schema, and primary domain `john.localhost`.
-- Response 201:
+- Expected 201 Response:
 ```json
 {
   "user": {"id": 1, "username": "john", "email": "john@example.com"},
@@ -25,91 +27,102 @@ Auth uses JWT (JSON Web Tokens) via SimpleJWT. Obtain tokens with login or regis
   "tokens": {"access": "...", "refresh": "..."}
 }
 ```
-
-Postman tips:
-- Set request: Method `POST`, URL `http://localhost:8000/api/auth/register/`
-- Headers: `Content-Type: application/json`
-- Body: raw JSON as above
-- Save `tokens.access` in a Postman environment variable (e.g., `ACCESS_TOKEN`)
+- Notes: Creates the user, tenant schema, and primary domain `john.localhost`.
 
 ### Login
-- URL: `POST /api/auth/login/`
-- Body (JSON):
+- Method: POST
+- URL: http://localhost:8000/api/auth/login/
+- Headers:
+  - Content-Type: application/json
+- Body (raw JSON):
 ```json
 { "username": "john", "password": "secret123" }
 ```
-- Response 200:
+- Expected 200 Response:
 ```json
 {
   "user": {"id": 1, "username": "john", "email": "john@example.com"},
   "tokens": {"access": "...", "refresh": "..."}
 }
 ```
-
-Postman tips:
-- URL: `http://localhost:8000/api/auth/login/`
-- Save `tokens.access` to `ACCESS_TOKEN` and `tokens.refresh` to `REFRESH_TOKEN` in your Postman environment for later use
+- Notes: Save `tokens.access` → `ACCESS_TOKEN`, `tokens.refresh` → `REFRESH_TOKEN` in Postman env.
 
 ### Refresh Token
-- URL: `POST /api/auth/refresh/`
-- Body (JSON):
+- Method: POST
+- URL: http://localhost:8000/api/auth/refresh/
+- Headers:
+  - Content-Type: application/json
+- Body (raw JSON):
 ```json
 { "refresh": "<refresh_token>" }
 ```
-- Response 200: `{ "access": "..." }`
-
-Postman tips:
-- URL: `http://localhost:8000/api/auth/refresh/`
-- Update your `ACCESS_TOKEN` variable with the new token
+- Expected 200 Response:
+```json
+{ "access": "..." }
+```
+- Notes: Update your `ACCESS_TOKEN` environment variable with the response value.
 
 ### Current User
-- URL: `GET /api/auth/me/`
-- Headers: `Authorization: Bearer <access_token>`
-- Response 200: `{ "id": 1, "username": "john", "email": "john@example.com" }`
-
-Postman tips:
-- Add header: `Authorization: Bearer {{ACCESS_TOKEN}}`
+- Method: GET
+- URL: http://localhost:8000/api/auth/me/
+- Headers:
+  - Authorization: Bearer {{ACCESS_TOKEN}}
+- Expected 200 Response:
+```json
+{ "id": 1, "username": "john", "email": "john@example.com" }
+```
 
 ## Blog Posts (Tenant-aware)
 
 Posts are automatically tenant-scoped by `django-tenants` using the request host. For local development, call APIs from the tenant subdomain (`http://<username>.localhost:8000`). If you registered the username `john`, you should use `http://john.localhost:8000` for all posts endpoints.
 
 ### List Posts
-- URL: `GET http://<tenant>.localhost:8000/api/posts/`
-- Public: yes
-- Response 200:
+- Method: GET
+- URL: http://<tenant>.localhost:8000/api/posts/
+- Headers: (none required)
+- Expected 200 Response:
 ```json
 [{"id":1,"title":"Hello","content":"...","author":1,"author_username":"john","created_at":"...","updated_at":"...","is_published":true}]
 ```
 
 ### Retrieve Post
-- URL: `GET http://<tenant>.localhost:8000/api/posts/{id}/`
-- Public: yes
+- Method: GET
+- URL: http://<tenant>.localhost:8000/api/posts/{id}/
+- Headers: (none required)
 
 ### Create Post
-- URL: `POST http://<tenant>.localhost:8000/api/posts/`
-- Headers: `Authorization: Bearer <access_token>`
-- Body (JSON):
+- Method: POST
+- URL: http://<tenant>.localhost:8000/api/posts/
+- Headers:
+  - Authorization: Bearer {{ACCESS_TOKEN}}
+  - Content-Type: application/json
+- Body (raw JSON):
 ```json
 { "title": "My first post", "content": "Post content", "is_published": true }
 ```
-- Response 201: Created post object
+-- Expected 201 Response: Created post object
 
 Postman tips:
-- URL: `http://{{TENANT}}.localhost:8000/api/posts/` (set Postman variable `TENANT` to your username)
+- URL: `http://{{TENANT}}.localhost:8000/api/posts/` (set `TENANT` to your username)
 - Headers: `Content-Type: application/json`, `Authorization: Bearer {{ACCESS_TOKEN}}`
 
 ### Update Post
-- URL: `PUT http://<tenant>.localhost:8000/api/posts/{id}/`
-- Headers: `Authorization: Bearer <access_token>` (must be author)
-- Body (JSON): any editable fields from the serializer
+- Method: PUT (or PATCH)
+- URL: http://<tenant>.localhost:8000/api/posts/{id}/
+- Headers:
+  - Authorization: Bearer {{ACCESS_TOKEN}} (must be author)
+  - Content-Type: application/json
+- Body (raw JSON): any editable fields from the serializer
 
 Postman tips:
 - Use either `PUT` (full update) or `PATCH` (partial update)
 
 ### Delete Post
-- URL: `DELETE http://<tenant>.localhost:8000/api/posts/{id}/`
-- Headers: `Authorization: Bearer <access_token>` (must be author)
+- Method: DELETE
+- URL: http://<tenant>.localhost:8000/api/posts/{id}/
+- Headers:
+  - Authorization: Bearer {{ACCESS_TOKEN}} (must be author)
+- Expected 204 No Content
 
 Postman tips:
 - The endpoint returns 204 No Content on success
