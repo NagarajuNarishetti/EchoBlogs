@@ -23,7 +23,7 @@
 - Django 5.2+
 - django-tenants (multi-tenancy)
 - PostgreSQL database
-- Session-based authentication
+- Django REST Framework + SimpleJWT (JWT auth)
 
 ---
 
@@ -67,76 +67,60 @@ Your EchoBlogs project uses **django-tenants** which creates separate database s
 - **Public Schema**: `http://localhost:8000`
 - **Tenant Schema**: `http://username.localhost:8000` (replace `username` with actual username)
 
-### 1. Authentication Endpoints (Public Schema)
+### 1. Authentication Endpoints (Public Schema, JSON)
 
-#### 1.1 Home Page
-- **URL**: `GET http://localhost:8000/`
-- **Description**: Main landing page
-- **Authentication**: None required
-
-#### 1.2 User Registration
-- **URL**: `POST http://localhost:8000/register/`
-- **Description**: Create new user account and tenant
-- **Content-Type**: `application/x-www-form-urlencoded`
-
-**Request Body:**
+#### 1.1 Register
+- **URL**: `POST {{base_url}}/api/auth/register/`
+- **Headers**: `Content-Type: application/json`
+- **Body (raw JSON)**:
+```json
+{ "username": "{{username}}", "email": "{{email}}", "password": "{{password}}" }
 ```
-username: your_username
-email: your_email@example.com
-password: your_password
-confirm_password: your_password
+- **Response**: 201 with `{ user, domain, tokens }`
+
+#### 1.2 Login
+- **URL**: `POST {{base_url}}/api/auth/login/`
+- **Headers**: `Content-Type: application/json`
+- **Body (raw JSON)**:
+```json
+{ "username": "{{username}}", "password": "{{password}}" }
 ```
+- **Response**: 200 with `{ user, tokens }`
 
-**Success Response**: Redirects to home page
-**Error Response**: Returns registration form with error messages
-
-#### 1.3 User Login
-- **URL**: `POST http://localhost:8000/login/`
-- **Description**: Authenticate user
-- **Content-Type**: `application/x-www-form-urlencoded`
-
-**Request Body:**
-```
-username: your_username
-password: your_password
+#### 1.3 Refresh
+- **URL**: `POST {{base_url}}/api/auth/refresh/`
+- **Body**:
+```json
+{ "refresh": "{{REFRESH_TOKEN}}" }
 ```
 
-**Success Response**: Redirects to home page
-**Error Response**: Returns login form with error message
+#### 1.4 Me
+- **URL**: `GET {{base_url}}/api/auth/me/`
+- **Headers**: `Authorization: Bearer {{ACCESS_TOKEN}}`
 
-#### 1.4 User Logout
-- **URL**: `GET http://localhost:8000/logout/`
-- **Description**: Logout current user
-- **Authentication**: Session required
+### 2. Blog Endpoints (Tenant Schema, JSON)
 
-### 2. Blog Endpoints (Tenant Schema)
+#### 2.1 List Posts
+- **URL**: `GET {{tenant_url}}/api/posts/`
 
-#### 2.1 List Blog Posts
-- **URL**: `GET http://username.localhost:8000/blog/`
-- **Description**: View all published blog posts for the tenant
-- **Authentication**: None required (public posts)
-
-#### 2.2 Create Blog Post
-- **URL**: `POST http://username.localhost:8000/blog/create/`
-- **Description**: Create new blog post
-- **Authentication**: Login required
-- **Content-Type**: `application/x-www-form-urlencoded`
-
-**Request Body:**
-```
-title: Your Post Title
-content: Your post content here...
+#### 2.2 Create Post
+- **URL**: `POST {{tenant_url}}/api/posts/`
+- **Headers**: `Authorization: Bearer {{ACCESS_TOKEN}}`, `Content-Type: application/json`
+- **Body**:
+```json
+{ "title": "My First Post", "content": "Post content" }
 ```
 
-**Success Response**: Redirects to post list
-**Error Response**: Returns create form with error message
+#### 2.3 Retrieve Post
+- **URL**: `GET {{tenant_url}}/api/posts/:id/`
 
-### 3. Admin Endpoints
+#### 2.4 Update Post
+- **URL**: `PATCH {{tenant_url}}/api/posts/:id/`
+- **Headers**: `Authorization: Bearer {{ACCESS_TOKEN}}`, `Content-Type: application/json`
 
-#### 3.1 Django Admin
-- **URL**: `GET http://localhost:8000/admin/`
-- **Description**: Django admin interface
-- **Authentication**: Superuser required
+#### 2.5 Delete Post
+- **URL**: `DELETE {{tenant_url}}/api/posts/:id/`
+- **Headers**: `Authorization: Bearer {{ACCESS_TOKEN}}`
 
 ---
 
@@ -162,6 +146,8 @@ Create environment variables for easy testing:
 | `username` | `testuser` | `testuser` |
 | `email` | `test@example.com` | `test@example.com` |
 | `password` | `testpass123` | `testpass123` |
+| `ACCESS_TOKEN` |  |  |
+| `REFRESH_TOKEN` |  |  |
 
 ### Step 3: Create Request Folders
 Organize your requests in folders:
@@ -173,52 +159,43 @@ Organize your requests in folders:
 
 ## Testing Workflows
 
-### Workflow 1: Complete User Registration and Blog Creation
+### Workflow 1: Complete User Registration and Blog Creation (API)
 
 #### Step 1: Register New User
-1. **Request**: `POST {{base_url}}/register/`
-2. **Headers**: 
+1. **Request**: `POST {{base_url}}/api/auth/register/`
+2. **Headers**: `Content-Type: application/json`
+3. **Body (raw JSON)**:
+   ```json
+   { "username": "{{username}}", "email": "{{email}}", "password": "{{password}}" }
    ```
-   Content-Type: application/x-www-form-urlencoded
-   ```
-3. **Body** (x-www-form-urlencoded):
-   ```
-   username: {{username}}
-   email: {{email}}
-   password: {{password}}
-   confirm_password: {{password}}
-   ```
-4. **Expected**: 302 Redirect to home page
+4. **Expected**: 201 Created with tokens and domain
 
 #### Step 2: Login User
-1. **Request**: `POST {{base_url}}/login/`
-2. **Headers**: 
+1. **Request**: `POST {{base_url}}/api/auth/login/`
+2. **Headers**: `Content-Type: application/json`
+3. **Body (raw JSON)**:
+   ```json
+   { "username": "{{username}}", "password": "{{password}}" }
    ```
-   Content-Type: application/x-www-form-urlencoded
+4. **Postman Test Script**:
+   ```javascript
+   let json = pm.response.json();
+   pm.environment.set("ACCESS_TOKEN", json.tokens.access);
+   pm.environment.set("REFRESH_TOKEN", json.tokens.refresh);
    ```
-3. **Body** (x-www-form-urlencoded):
-   ```
-   username: {{username}}
-   password: {{password}}
-   ```
-4. **Expected**: 302 Redirect to home page
 
 #### Step 3: View Blog Posts (Tenant Schema)
-1. **Request**: `GET {{tenant_url}}/blog/`
-2. **Expected**: 200 OK with blog post list
+1. **Request**: `GET {{tenant_url}}/api/posts/`
+2. **Expected**: 200 OK with JSON list
 
 #### Step 4: Create Blog Post (Tenant Schema)
-1. **Request**: `POST {{tenant_url}}/blog/create/`
-2. **Headers**: 
+1. **Request**: `POST {{tenant_url}}/api/posts/`
+2. **Headers**: `Authorization: Bearer {{ACCESS_TOKEN}}`, `Content-Type: application/json`
+3. **Body (raw JSON)**:
+   ```json
+   { "title": "My First Post", "content": "This is my first blog post content!" }
    ```
-   Content-Type: application/x-www-form-urlencoded
-   ```
-3. **Body** (x-www-form-urlencoded):
-   ```
-   title: My First Post
-   content: This is my first blog post content!
-   ```
-4. **Expected**: 302 Redirect to blog list
+4. **Expected**: 201 Created with post JSON
 
 #### Step 5: Verify Post Creation
 1. **Request**: `GET {{tenant_url}}/blog/`
@@ -252,33 +229,34 @@ Organize your requests in folders:
 
 ## Postman Request Examples
 
-### 1. User Registration Request
+### 1. Register (HTTP)
 ```http
-POST http://localhost:8000/register/
-Content-Type: application/x-www-form-urlencoded
+POST http://localhost:8000/api/auth/register/
+Content-Type: application/json
 
-username=john_doe&email=john@example.com&password=securepass123&confirm_password=securepass123
+{"username":"john_doe","email":"john@example.com","password":"securepass123"}
 ```
 
-### 2. User Login Request
+### 2. Login (HTTP)
 ```http
-POST http://localhost:8000/login/
-Content-Type: application/x-www-form-urlencoded
+POST http://localhost:8000/api/auth/login/
+Content-Type: application/json
 
-username=john_doe&password=securepass123
+{"username":"john_doe","password":"securepass123"}
 ```
 
-### 3. Create Blog Post Request
+### 3. Create Blog Post (HTTP)
 ```http
-POST http://john_doe.localhost:8000/blog/create/
-Content-Type: application/x-www-form-urlencoded
+POST http://john_doe.localhost:8000/api/posts/
+Authorization: Bearer {{ACCESS_TOKEN}}
+Content-Type: application/json
 
-title=Welcome to My Blog&content=This is my first blog post. I'm excited to share my thoughts with the world!
+{"title":"Welcome to My Blog","content":"This is my first blog post."}
 ```
 
-### 4. View Blog Posts Request
+### 4. List Blog Posts (HTTP)
 ```http
-GET http://john_doe.localhost:8000/blog/
+GET http://john_doe.localhost:8000/api/posts/
 ```
 
 ---
@@ -286,9 +264,9 @@ GET http://john_doe.localhost:8000/blog/
 ## Postman Settings & Configuration
 
 ### 1. Request Settings
-- **Follow Redirects**: Enable (Settings → General → "Automatically follow redirects")
+- **Follow Redirects**: Not required for API JSON endpoints
 - **SSL Certificate Verification**: Disable for localhost testing
-- **Send cookies**: Enable for session management
+- **Send cookies**: Not required (JWT-based)
 
 ### 2. Headers Configuration
 For form submissions, always include:
@@ -296,10 +274,9 @@ For form submissions, always include:
 Content-Type: application/x-www-form-urlencoded
 ```
 
-### 3. Cookie Management
-- Enable "Send cookies automatically" in Postman settings
-- Django uses session cookies for authentication
-- Cookies are domain-specific (localhost vs username.localhost)
+### 3. Auth Management
+- Store `ACCESS_TOKEN` and `REFRESH_TOKEN` as Postman environment variables
+- Send `Authorization: Bearer {{ACCESS_TOKEN}}` on protected endpoints
 
 ### 4. Environment Switching
 - Use the environment dropdown to switch between different user configurations
@@ -372,13 +349,13 @@ Content-Type: application/x-www-form-urlencoded
 
 ## Data Flow Understanding
 
-### Registration Flow:
-1. User submits registration form → `POST /register/`
-2. Django creates User in public schema
-3. Django creates Client (tenant) with schema_name = username
-4. Django creates Domain pointing to username.localhost
-5. Django runs migrations for new tenant schema
-6. User is auto-logged in and redirected
+### Registration Flow (API):
+1. Client calls `POST /api/auth/register/`
+2. Server creates User in public schema
+3. Server creates Client (tenant) with schema_name = username
+4. Server creates Domain pointing to username.localhost
+5. Server runs migrations for new tenant schema
+6. Response returns `{ user, domain, tokens }`
 
 ### Blog Post Creation Flow:
 1. User accesses tenant URL → `username.localhost:8000`
@@ -387,18 +364,17 @@ Content-Type: application/x-www-form-urlencoded
 4. Post is saved in tenant-specific schema
 5. Post appears only in that tenant's blog
 
-### Authentication Flow:
-1. User logs in → `POST /login/`
-2. Django creates session cookie
-3. Cookie is sent with subsequent requests
-4. Django middleware validates session
-5. User can access protected resources
+### Authentication Flow (JWT):
+1. Client logs in → `POST /api/auth/login/`
+2. Server issues `{ access, refresh }` tokens
+3. Client sends `Authorization: Bearer <access>` on protected requests
+4. Client refreshes token via `POST /api/auth/refresh/` when needed
 
 ---
 
 ## Tips for Learning Postman
 
-1. **Start Simple**: Begin with GET requests to understand the flow
+1. **Start Simple**: Begin with unauthenticated GETs and then auth flows
 2. **Use Collections**: Organize requests logically
 3. **Environment Variables**: Use variables for easy testing
 4. **Test Scripts**: Add JavaScript tests to verify responses
@@ -409,9 +385,8 @@ Content-Type: application/x-www-form-urlencoded
 
 ## Next Steps
 
-1. **API Documentation**: Consider adding Django REST Framework for proper API endpoints
-2. **Authentication**: Implement token-based authentication for better API testing
-3. **Error Handling**: Add proper error responses for API calls
+1. **API Documentation**: Add OpenAPI/Swagger for interactive docs
+2. **Error Handling**: Ensure clear error JSON for API calls
 4. **Testing**: Add automated tests using Postman's test runner
 5. **Monitoring**: Use Postman monitoring for API health checks
 

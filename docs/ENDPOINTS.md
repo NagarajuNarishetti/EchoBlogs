@@ -10,24 +10,18 @@ This document provides a comprehensive list of all available endpoints in EchoBl
 - **Production**: `https://yourdomain.com`
 - **Tenant Access**: `http://username.localhost:8000` (for tenant-specific endpoints)
 
-## 📋 Endpoint Categories
+## 📋 Endpoint Categories (API-first)
 
-### 1. Public Endpoints (Main Domain)
-### 2. Authentication Endpoints
-### 3. Blog Endpoints (Tenant-Specific)
-### 4. Admin Endpoints
+- **Auth (public domain)**: `/api/auth/*`
+- **Posts (tenant domain)**: `/api/posts/*`
+- **Admin**: `/admin/` (Django admin)
 
 ---
 
-## 🏠 Public Endpoints
+## 🧭 Base URLs
 
-### Home Page
-- **URL**: `/`
-- **Method**: `GET`
-- **Description**: Landing page with feature highlights and call-to-action buttons
-- **Authentication**: Not required
-- **Template**: `home.html`
-- **Response**: HTML page
+- **Public**: `http://localhost:8000`
+- **Tenant**: `http://<username>.localhost:8000`
 
 **Example Request**:
 ```bash
@@ -42,171 +36,73 @@ curl -X GET http://127.0.0.1:8000/
 
 ---
 
-## 🔐 Authentication Endpoints
+## 🔐 Authentication Endpoints (JSON)
 
-### User Registration
-- **URL**: `/register/`
-- **Method**: `GET`, `POST`
-- **Description**: User registration with automatic tenant creation
-- **Authentication**: Not required
-- **Template**: `accounts/register.html`
+### Register
+- **URL**: `/api/auth/register/`
+- **Method**: `POST`
+- **Body**:
+```json
+{ "username": "string", "email": "string", "password": "string" }
+```
+- **Response**: 201 with `{ user, domain, tokens }`
 
-#### GET Request
-**Description**: Display registration form
-**Response**: HTML registration form
+### Login
+- **URL**: `/api/auth/login/`
+- **Method**: `POST`
+- **Body**:
+```json
+{ "username": "string", "password": "string" }
+```
+- **Response**: 200 with `{ user, tokens }`
 
-#### POST Request
-**Description**: Process registration and create tenant
-**Content-Type**: `application/x-www-form-urlencoded`
-
-**Parameters**:
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `username` | string | Yes | Unique username (becomes subdomain) |
-| `email` | string | Yes | Valid email address |
-| `password` | string | Yes | User password |
-| `confirm_password` | string | Yes | Password confirmation |
-
-**Example Request**:
-```bash
-curl -X POST http://127.0.0.1:8000/register/ \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=john_doe&email=john@example.com&password=securepass&confirm_password=securepass"
+### Refresh
+- **URL**: `/api/auth/refresh/`
+- **Method**: `POST`
+- **Body**:
+```json
+{ "refresh": "token" }
 ```
 
-**Success Response**:
-- **Status**: `302 Found` (Redirect)
-- **Location**: `/` (Home page)
-- **Message**: "Account created successfully! Your blog is available at john_doe.localhost:8000"
-
-**Error Responses**:
-- **Status**: `200 OK` (Form with errors)
-- **Messages**: 
-  - "All fields are required."
-  - "Passwords do not match."
-  - "Username already exists."
-  - "Email already exists."
-
-### User Login
-- **URL**: `/login/`
-- **Method**: `GET`, `POST`
-- **Description**: User authentication
-- **Authentication**: Not required
-- **Template**: `accounts/login.html`
-
-#### GET Request
-**Description**: Display login form
-**Response**: HTML login form
-
-#### POST Request
-**Description**: Authenticate user
-**Content-Type**: `application/x-www-form-urlencoded`
-
-**Parameters**:
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `username` | string | Yes | Username or email |
-| `password` | string | Yes | User password |
-
-**Example Request**:
-```bash
-curl -X POST http://127.0.0.1:8000/login/ \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=john_doe&password=securepass"
-```
-
-**Success Response**:
-- **Status**: `302 Found` (Redirect)
-- **Location**: `/` (Home page)
-- **Message**: "Welcome back, john_doe!"
-
-**Error Response**:
-- **Status**: `200 OK` (Form with errors)
-- **Message**: "Invalid username or password."
-
-### User Logout
-- **URL**: `/logout/`
+### Me
+- **URL**: `/api/auth/me/`
 - **Method**: `GET`
-- **Description**: User logout with redirect to home
-- **Authentication**: Required
-- **Redirect**: Home page with success message
+- **Headers**: `Authorization: Bearer <access>`
 
-**Example Request**:
-```bash
-curl -X GET http://127.0.0.1:8000/logout/ \
-  -H "Cookie: sessionid=your_session_id"
-```
-
-**Response**:
-- **Status**: `302 Found` (Redirect)
-- **Location**: `/` (Home page)
-- **Message**: "You have been logged out successfully."
+> Note: Admin uses Django's session-based auth; API endpoints use JWT.
 
 ---
 
-## 📝 Blog Endpoints (Tenant-Specific)
+## 📝 Blog Endpoints (Tenant-Specific, JSON)
 
-### Blog Post List
-- **URL**: `/blog/`
+### List Posts
+- **URL**: `/api/posts/`
 - **Method**: `GET`
-- **Description**: Display all blog posts for the current tenant
-- **Authentication**: Required
-- **Template**: `accounts/blog/post_list.html`
-- **Context**: `{'posts': posts}`
+- **Response**: 200 JSON array
 
-**Example Request**:
-```bash
-curl -X GET http://username.localhost:8000/blog/ \
-  -H "Cookie: sessionid=your_session_id"
+### Create Post
+- **URL**: `/api/posts/`
+- **Method**: `POST`
+- **Headers**: `Authorization: Bearer <access>`, `Content-Type: application/json`
+- **Body**:
+```json
+{ "title": "string", "content": "string", "is_published": true }
 ```
+- **Response**: 201 with post JSON
 
-**Response**: HTML page with:
-- List of all blog posts in card format
-- Post title, content preview, creation date
-- Action buttons (View, Edit, Delete)
-- "Create New Post" button
+### Retrieve Post
+- **URL**: `/api/posts/{id}/`
+- **Method**: `GET`
 
-**Empty State**: If no posts exist, shows:
-- Empty state message
-- "Create Your First Post" button
+### Update Post
+- **URL**: `/api/posts/{id}/`
+- **Method**: `PATCH` or `PUT`
+- **Headers**: `Authorization: Bearer <access>`, `Content-Type: application/json`
 
-### Create Blog Post
-- **URL**: `/blog/create/`
-- **Method**: `GET`, `POST`
-- **Description**: Create a new blog post
-- **Authentication**: Required
-- **Template**: `accounts/blog/post_create.html`
-
-#### GET Request
-**Description**: Display post creation form
-**Response**: HTML form for creating posts
-
-#### POST Request
-**Description**: Process post creation
-**Content-Type**: `application/x-www-form-urlencoded`
-
-**Parameters**:
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `title` | string | Yes | Post title (max 255 characters) |
-| `content` | string | Yes | Post content |
-
-**Example Request**:
-```bash
-curl -X POST http://username.localhost:8000/blog/create/ \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -H "Cookie: sessionid=your_session_id" \
-  -d "title=My First Post&content=This is the content of my first blog post."
-```
-
-**Success Response**:
-- **Status**: `302 Found` (Redirect)
-- **Location**: `/blog/` (Post list)
-- **Message**: "Post created successfully!"
-
-**Error Response**:
-- **Status**: `200 OK` (Form with errors)
-- **Message**: "Please fill in all fields."
+### Delete Post
+- **URL**: `/api/posts/{id}/`
+- **Method**: `DELETE`
+- **Headers**: `Authorization: Bearer <access>`
 
 ---
 
@@ -233,34 +129,11 @@ curl -X GET http://127.0.0.1:8000/admin/ \
 
 ---
 
-## 🔄 URL Patterns
+## 🔄 URL Patterns (High-level)
 
-### Main URLs (`EchoBlogs/urls.py`)
-```python
-urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('', include('accounts.urls')),           # home, login, logout, register
-    path('blog/', include('blog.urls')),          # tenant-specific blog posts
-]
-```
-
-### Account URLs (`accounts/urls.py`)
-```python
-urlpatterns = [
-    path("", home, name="home"),
-    path("register/", register, name="register"),
-    path("login/", user_login, name="login"),
-    path("logout/", user_logout, name="logout"),
-]
-```
-
-### Blog URLs (`blog/urls.py`)
-```python
-urlpatterns = [
-    path('', views.post_list, name='post_list'),
-    path('create/', views.post_create, name='post_create'),
-]
-```
+- Public domain routes expose `/api/auth/*`
+- Tenant domain routes expose `/api/posts/*`
+- Django admin remains at `/admin/`
 
 ---
 
@@ -283,12 +156,8 @@ urlpatterns = [
 
 ## 📊 Response Formats
 
-### HTML Responses
-All endpoints return HTML responses with:
-- **Content-Type**: `text/html; charset=utf-8`
-- **Template**: Django template rendering
-- **Bootstrap**: Modern UI with Bootstrap 5
-- **Responsive**: Mobile-friendly design
+### JSON Responses
+All API endpoints return JSON with appropriate HTTP status codes.
 
 ### Error Responses
 Error responses include:
@@ -301,68 +170,32 @@ Error responses include:
 
 ## 🔐 Authentication Requirements
 
-### Public Endpoints
-- **Home Page**: No authentication required
-- **Registration**: No authentication required
-- **Login**: No authentication required
-
-### Protected Endpoints
-- **Logout**: Requires authentication
-- **Blog Management**: Requires authentication
-- **Admin Interface**: Requires superuser authentication
-
-### Session Management
-- **Session Storage**: Database-backed sessions
-- **Session Timeout**: Django default (2 weeks)
-- **CSRF Protection**: All forms protected with CSRF tokens
+- Send `Authorization: Bearer <access>` for protected endpoints
+- Obtain tokens from `/api/auth/login/` or `/api/auth/register/`
 
 ---
 
 ## 📝 Request Examples
 
-### Complete Registration Flow
+### Registration/Login (cURL)
 ```bash
-# 1. Visit registration page
-curl -X GET http://127.0.0.1:8000/register/
+curl -X POST http://localhost:8000/api/auth/register/ \
+  -H "Content-Type: application/json" \
+  -d '{"username":"newuser","email":"new@example.com","password":"password123"}'
 
-# 2. Submit registration form
-curl -X POST http://127.0.0.1:8000/register/ \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=newuser&email=new@example.com&password=password123&confirm_password=password123"
-
-# 3. Access personal blog (after registration)
-curl -X GET http://newuser.localhost:8000/blog/
+curl -X POST http://localhost:8000/api/auth/login/ \
+  -H "Content-Type: application/json" \
+  -d '{"username":"newuser","password":"password123"}'
 ```
 
-### Complete Login Flow
+### Posts (cURL)
 ```bash
-# 1. Visit login page
-curl -X GET http://127.0.0.1:8000/login/
+curl -X POST http://newuser.localhost:8000/api/posts/ \
+  -H "Authorization: Bearer <ACCESS>" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"My New Post","content":"This is the content of my new blog post."}'
 
-# 2. Submit login form
-curl -X POST http://127.0.0.1:8000/login/ \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=existinguser&password=password123"
-
-# 3. Access blog (after login)
-curl -X GET http://existinguser.localhost:8000/blog/
-```
-
-### Blog Post Creation Flow
-```bash
-# 1. Visit post creation page
-curl -X GET http://username.localhost:8000/blog/create/ \
-  -H "Cookie: sessionid=your_session_id"
-
-# 2. Submit post creation form
-curl -X POST http://username.localhost:8000/blog/create/ \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -H "Cookie: sessionid=your_session_id" \
-  -d "title=My New Post&content=This is the content of my new blog post."
-
-# 3. View updated post list
-curl -X GET http://username.localhost:8000/blog/ \
-  -H "Cookie: sessionid=your_session_id"
+curl -X GET http://newuser.localhost:8000/api/posts/
 ```
 
 ---

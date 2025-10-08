@@ -13,8 +13,7 @@
                     <p class="text-muted">Sign in to access your blog</p>
                 </div>
 
-                <form method="POST">
-                    {% csrf_token %}
+                <form id="loginForm" onsubmit="return false;">
 
                     <div class="mb-3">
                         <label for="username" class="form-label">
@@ -33,7 +32,7 @@
                     </div>
 
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-primary btn-lg">
+                        <button type="button" onclick="submitLogin()" class="btn btn-primary btn-lg">
                             <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
                         </button>
                     </div>
@@ -58,4 +57,31 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function submitLogin() {
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value;
+
+        try {
+            const res = await fetch('http://localhost:8000/api/auth/login/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                alert(data.detail || 'Invalid credentials');
+                return;
+            }
+            window.echoblogsAuth.setTokens(data.tokens?.access, data.tokens?.refresh);
+            const tenantUrl = window.echoblogsTenantUrl(username);
+            window.location.href = tenantUrl + '/blog/';
+        } catch (e) {
+            alert('Login failed. Please try again.');
+        }
+    }
+</script>
 {% endblock %}

@@ -212,6 +212,35 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Simple client-side token storage helpers
+        window.echoblogsAuth = {
+            setTokens: function (access, refresh) {
+                try {
+                    localStorage.setItem('ACCESS_TOKEN', access || '');
+                    localStorage.setItem('REFRESH_TOKEN', refresh || '');
+                } catch (e) { }
+            },
+            getAccessToken: function () {
+                try { return localStorage.getItem('ACCESS_TOKEN') || ''; } catch (e) { return ''; }
+            },
+            getRefreshToken: function () {
+                try { return localStorage.getItem('REFRESH_TOKEN') || ''; } catch (e) { return ''; }
+            },
+            clear: function () {
+                try {
+                    localStorage.removeItem('ACCESS_TOKEN');
+                    localStorage.removeItem('REFRESH_TOKEN');
+                } catch (e) { }
+            }
+        };
+
+        // Compute tenant base URL using a username (e.g., john -> http://john.localhost:8000)
+        window.echoblogsTenantUrl = function (username) {
+            if (!username) return window.location.origin;
+            return `http://${username.toLowerCase()}.localhost:8000`;
+        };
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 

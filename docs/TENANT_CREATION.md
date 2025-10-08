@@ -14,25 +14,19 @@ Tenant creation in EchoBlogs involves:
 
 ## 🔄 User Workflow
 
-### 1. Registration Process
+### 1. Registration Process (API)
 ```
-User visits 127.0.0.1:8000/register/
+Client calls POST /api/auth/register/ (localhost)
     ↓
-Fills registration form
+JSON payload validated
     ↓
-Submits form (POST request)
+Create user in public schema
     ↓
-System validates input
+Create tenant schema (auto migrations)
     ↓
-Creates user in public schema
+Create domain mapping (<username>.localhost)
     ↓
-Creates tenant schema
-    ↓
-Creates domain mapping
-    ↓
-Auto-login user
-    ↓
-Redirect to home page
+Return JSON { user, domain, tokens }
 ```
 
 ### 2. Domain Access
@@ -42,67 +36,17 @@ After registration, users can access their blog via:
 
 ## 🛠️ Technical Implementation
 
-### Registration View
+### Registration API (conceptual)
 ```python
-# accounts/views.py
+# accounts/api_views.py (conceptual)
+@api_view(['POST'])
 def register(request):
-    """User registration with tenant creation"""
-    # Must run only on public schema
-    if connection.schema_name != 'public':
-        return render(request, "accounts/error.html", 
-                     {"msg": "Tenant creation must be done from the public schema."})
-
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        email = request.POST.get('email')
-        password = request.POST.get('password')
-        confirm_password = request.POST.get('confirm_password')
-
-        # Validation
-        if not username or not email or not password:
-            messages.error(request, "All fields are required.")
-            return render(request, "accounts/register.html")
-
-        if password != confirm_password:
-            messages.error(request, "Passwords do not match.")
-            return render(request, "accounts/register.html")
-
-        if User.objects.filter(username=username).exists():
-            messages.error(request, "Username already exists.")
-            return render(request, "accounts/register.html")
-
-        if User.objects.filter(email=email).exists():
-            messages.error(request, "Email already exists.")
-            return render(request, "accounts/register.html")
-
-        try:
-            # Create user in public schema
-            user = User.objects.create_user(username=username, email=email, password=password)
-
-            # Create new tenant
-            tenant = Client(schema_name=username.lower(), name=username)
-            tenant.save()  # runs migrations for this tenant
-
-            # Create domain for tenant
-            domain = Domain()
-            domain.domain = f"{username.lower()}.localhost"
-            domain.tenant = tenant
-            domain.is_primary = True
-            domain.save()
-
-            messages.success(request, f"Account created successfully! Your blog is available at {domain.domain}:8000")
-            
-            # Auto-login the user
-            user = authenticate(username=username, password=password)
-            if user:
-                login(request, user)
-                return redirect('home')
-
-        except Exception as e:
-            messages.error(request, f"Error creating account: {str(e)}")
-            return render(request, "accounts/register.html")
-
-    return render(request, "accounts/register.html")
+    # Validate JSON
+    # Create user (public schema)
+    # Create tenant (schema + migrations)
+    # Create domain mapping
+    # Issue JWT tokens
+    return Response({"user": ..., "domain": ..., "tokens": ...}, status=201)
 ```
 
 ### Tenant Models

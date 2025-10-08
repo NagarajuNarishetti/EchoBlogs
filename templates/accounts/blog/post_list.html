@@ -15,48 +15,7 @@
     </a>
 </div>
 
-{% if posts %}
-<div class="row g-4">
-    {% for post in posts %}
-    <div class="col-md-6 col-lg-4">
-        <div class="card h-100">
-            <div class="card-body">
-                <h5 class="card-title">{{ post.title }}</h5>
-                <p class="card-text text-muted">
-                    {{ post.content|truncatewords:20 }}
-                </p>
-                <div class="d-flex justify-content-between align-items-center">
-                    <small class="text-muted">
-                        <i class="bi bi-calendar me-1"></i>
-                        {{ post.created_at|date:"M d, Y" }}
-                    </small>
-                    <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-primary" onclick="viewPost({{ post.id }})">
-                            <i class="bi bi-eye"></i>
-                        </button>
-                        <button class="btn btn-outline-secondary" onclick="editPost({{ post.id }})">
-                            <i class="bi bi-pencil"></i>
-                        </button>
-                        <button class="btn btn-outline-danger" onclick="deletePost({{ post.id }})">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endfor %}
-</div>
-{% else %}
-<div class="text-center py-5">
-    <i class="bi bi-journal-x text-muted" style="font-size: 4rem;"></i>
-    <h4 class="mt-3 text-muted">No Posts Yet</h4>
-    <p class="text-muted mb-4">Start your blogging journey by creating your first post!</p>
-    <a href="{% url 'post_create' %}" class="btn btn-primary btn-lg">
-        <i class="bi bi-plus-circle me-2"></i>Create Your First Post
-    </a>
-</div>
-{% endif %}
+<div id="postsGrid" class="row g-4"></div>
 
 <!-- Post Detail Modal -->
 <div class="modal fade" id="postModal" tabindex="-1">
@@ -79,21 +38,93 @@
 
 {% block extra_js %}
 <script>
-    function viewPost(postId) {
-        // For now, just show an alert. In a real app, you'd fetch the post details
-        alert('View post ' + postId + ' - Feature coming soon!');
+    async function loadPosts() {
+        const host = window.location.host; // tenant host
+        const apiBase = `${window.location.protocol}//${host}`;
+        const container = document.getElementById('postsGrid');
+        container.innerHTML = '';
+        try {
+            const res = await fetch(`${apiBase}/api/posts/`);
+            const posts = await res.json();
+            if (!Array.isArray(posts) || posts.length === 0) {
+                container.innerHTML = `
+                <div class="text-center py-5">
+                    <i class="bi bi-journal-x text-muted" style="font-size: 4rem;"></i>
+                    <h4 class="mt-3 text-muted">No Posts Yet</h4>
+                    <p class="text-muted mb-4">Start your blogging journey by creating your first post!</p>
+                    <a href="{% url 'post_create' %}" class="btn btn-primary btn-lg">
+                        <i class="bi bi-plus-circle me-2"></i>Create Your First Post
+                    </a>
+                </div>`;
+                return;
+            }
+            const html = posts.map(p => `
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">${p.title}</h5>
+                        <p class="card-text text-muted">${(p.content || '').split(' ').slice(0, 20).join(' ')}${(p.content || '').split(' ').length > 20 ? '...' : ''}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                <i class="bi bi-calendar me-1"></i>
+                                ${new Date(p.created_at).toLocaleDateString()}
+                            </small>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary" onclick="viewPost(${p.id})">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="editPost(${p.id})">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-outline-danger" onclick="deletePost(${p.id})">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`).join('');
+            container.innerHTML = html;
+        } catch (e) {
+            container.innerHTML = '<div class="alert alert-danger">Failed to load posts.</div>';
+        }
+    }
+
+    async function viewPost(postId) {
+        const host = window.location.host;
+        const apiBase = `${window.location.protocol}//${host}`;
+        try {
+            const res = await fetch(`${apiBase}/api/posts/${postId}/`);
+            const p = await res.json();
+            if (!res.ok) { alert('Failed to load post'); return; }
+            document.getElementById('postModalTitle').innerText = p.title;
+            document.getElementById('postModalBody').innerHTML = `<p>${p.content}</p>`;
+            const modal = new bootstrap.Modal(document.getElementById('postModal'));
+            modal.show();
+        } catch (e) { alert('Failed to load post'); }
+    }
+
+    async function deletePost(postId) {
+        if (!confirm('Are you sure you want to delete this post?')) return;
+        const access = window.echoblogsAuth.getAccessToken();
+        if (!access) { alert('Please login first.'); return; }
+        const host = window.location.host;
+        const apiBase = `${window.location.protocol}//${host}`;
+        try {
+            const res = await fetch(`${apiBase}/api/posts/${postId}/`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${access}` }
+            });
+            if (res.status === 204) { loadPosts(); return; }
+            const txt = await res.text();
+            alert(txt || 'Failed to delete post');
+        } catch (e) { alert('Failed to delete post'); }
     }
 
     function editPost(postId) {
-        // For now, just show an alert. In a real app, you'd redirect to edit page
-        alert('Edit post ' + postId + ' - Feature coming soon!');
+        alert('Edit post ' + postId + ' - integrate when edit UI exists.');
     }
 
-    function deletePost(postId) {
-        if (confirm('Are you sure you want to delete this post?')) {
-            // For now, just show an alert. In a real app, you'd make an AJAX call
-            alert('Delete post ' + postId + ' - Feature coming soon!');
-        }
-    }
+    document.addEventListener('DOMContentLoaded', loadPosts);
 </script>
 {% endblock %}

@@ -64,8 +64,8 @@ TENANT_MODEL = "tenants.Client"
 ```python
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('accounts.urls')),      # Public schema routes
-    path('blog/', include('blog.urls')),     # Tenant schema routes
+    path('api/auth/', include('accounts.api_urls')),  # Public schema auth APIs
+    path('api/', include('blog.api_urls')),           # Tenant schema post APIs
 ]
 ```
 - Defines main URL patterns
@@ -176,24 +176,18 @@ PostgreSQL Database: echoblogsdb
 
 ---
 
-## User Registration Flow
+## User Registration Flow (API)
 
 ### 1. Registration Process Sequence
 
 ```
-User visits: http://localhost:8000/register/
+Client calls: POST http://localhost:8000/api/auth/register/
     ↓
 TenantMainMiddleware: Detects localhost → stays on public schema
     ↓
-URL Router: Matches accounts.urls → register view
+URL Router: accounts.api_urls → register endpoint
     ↓
-accounts/views.py: register() function
-    ↓
-Template: accounts/register.html rendered
-    ↓
-User submits form: POST /register/
-    ↓
-register() view processes POST data
+accounts/api_views.py: register() handles JSON
     ↓
 Creates User in public schema
     ↓
@@ -245,40 +239,24 @@ def register(request):
         domain.is_primary = True
         domain.save()
         
-        # 7. Auto-login user
-        user = authenticate(username=username, password=password)
-        login(request, user)
-        
-        # 8. Redirect to home
-        return redirect('home')
+# 7. Issue JWT tokens in response JSON
+        return Response({"user": user_data, "domain": domain, "tokens": tokens}, status=201)
 ```
 
 ---
 
-## Authentication Flow
+## Authentication Flow (JWT)
 
 ### 1. Login Process
 
 ```
-User visits: http://localhost:8000/login/
+Client calls: POST http://localhost:8000/api/auth/login/
     ↓
 TenantMainMiddleware: localhost → public schema
     ↓
-URL Router: accounts.urls → login view
+URL Router: accounts.api_urls → login endpoint
     ↓
-accounts/views.py: user_login() function
-    ↓
-Template: accounts/login.html rendered
-    ↓
-User submits credentials: POST /login/
-    ↓
-user_login() processes POST data
-    ↓
-authenticate() checks credentials
-    ↓
-login() creates session
-    ↓
-Redirects to home page
+accounts/api_views.py: returns `{ user, tokens }`
 ```
 
 ### 2. Session Management
@@ -308,12 +286,12 @@ def user_login(request):
 
 ---
 
-## Blog Post Creation Flow
+## Blog Post Creation Flow (API)
 
 ### 1. Post Creation Process
 
 ```
-User visits: http://username.localhost:8000/blog/create/
+Client calls: http://username.localhost:8000/api/posts/
     ↓
 TenantMainMiddleware: Detects username.localhost
     ↓
@@ -321,17 +299,9 @@ Queries Domain table → finds tenant
     ↓
 Switches to username schema
     ↓
-URL Router: blog.urls → post_create view
+URL Router: blog.api_urls → posts endpoints
     ↓
-blog/views.py: post_create() function
-    ↓
-@login_required decorator checks authentication
-    ↓
-Template: accounts/blog/post_create.html rendered
-    ↓
-User submits form: POST /blog/create/
-    ↓
-post_create() processes POST data
+blog/api_views.py: DRF views handle CRUD with JWT auth
     ↓
 Creates Post in tenant schema
     ↓
@@ -368,39 +338,9 @@ def post_create(request):
 
 ---
 
-## Template Rendering Flow
+## API Interaction Flow
 
-### 1. Template Hierarchy
-
-```
-base.html (Base template)
-    ↓
-home.html (extends base.html)
-login.html (extends base.html)
-register.html (extends base.html)
-post_list.html (extends base.html)
-post_create.html (extends base.html)
-```
-
-### 2. Template Rendering Process
-
-```
-View function calls render()
-    ↓
-Django template engine loads template
-    ↓
-Processes template inheritance ({% extends %})
-    ↓
-Renders blocks ({% block content %})
-    ↓
-Processes template tags ({% url %}, {% if %}, {% for %})
-    ↓
-Context variables injected
-    ↓
-Final HTML generated
-    ↓
-Sent to browser
-```
+Clients call JSON endpoints under `/api`, sending `Authorization: Bearer <token>` for protected routes. Tenant isolation is enforced by domain (`<username>.localhost`).
 
 ### 3. Template Context Flow
 
@@ -468,9 +408,9 @@ def process_request(self, request):
 3. EchoBlogs/settings.py         # Configuration
 4. EchoBlogs/urls.py            # Main URL routing
 5. accounts/__init__.py         # App initialization
-6. accounts/urls.py             # Account URL patterns
+6. accounts/api_urls.py        # Auth API URL patterns
 7. blog/__init__.py            # App initialization
-8. blog/urls.py                # Blog URL patterns
+8. blog/api_urls.py            # Post API URL patterns
 9. tenants/__init__.py         # App initialization
 10. tenants/models.py           # Tenant models
 11. blog/models.py             # Blog models
@@ -486,21 +426,20 @@ def process_request(self, request):
 3. EchoBlogs/urls.py           # Main URL routing
 4. TenantMainMiddleware        # Tenant detection
 5. Other Middleware            # Security, sessions, etc.
-6. accounts/urls.py OR blog/urls.py  # App-specific routing
-7. accounts/views.py OR blog/views.py # View function
+6. accounts/api_urls.py OR blog/api_urls.py  # API routing
+7. accounts/api_views.py OR blog/api_views.py # API view handlers
 8. accounts/models.py OR blog/models.py # Database queries
-9. Template files               # HTML rendering
-10. Response sent to browser
+9. Response sent to client (JSON)
 ```
 
 ---
 
 ## Complete Request Lifecycle
 
-### 1. User Registration Request
+### 1. User Registration Request (API)
 
 ```
-Browser: POST http://localhost:8000/register/
+Client: POST http://localhost:8000/api/auth/register/
     ↓
 WSGI Server (wsgi.py)
     ↓
@@ -508,67 +447,39 @@ Django Core loads settings.py
     ↓
 TenantMainMiddleware: localhost → public schema
     ↓
-URL Router: EchoBlogs/urls.py → accounts.urls
+URL Router: EchoBlogs/urls.py → accounts.api_urls
     ↓
-accounts/urls.py: register pattern
+accounts/api_views.py: register endpoint
     ↓
-accounts/views.py: register() function
+Validate JSON payload
     ↓
-Validates form data
+Create user (public schema)
     ↓
-User.objects.create_user() → public schema
+Create tenant schema + domain mapping
     ↓
-Client.save() → creates tenant schema
-    ↓
-Domain.save() → maps domain
-    ↓
-authenticate() + login() → creates session
-    ↓
-redirect('home') → HTTP 302
-    ↓
-Browser follows redirect
-    ↓
-New request: GET http://localhost:8000/
-    ↓
-home view renders home.html
-    ↓
-Response sent to browser
+Return JSON { user, domain, tokens } with 201
 ```
 
-### 2. Blog Post Creation Request
+### 2. Blog Post Creation Request (API)
 
 ```
-Browser: POST http://username.localhost:8000/blog/create/
+Client: POST http://<username>.localhost:8000/api/posts/
     ↓
 WSGI Server (wsgi.py)
     ↓
 Django Core loads settings.py
     ↓
-TenantMainMiddleware: username.localhost → username schema
+TenantMainMiddleware: <username>.localhost → tenant schema
     ↓
-URL Router: EchoBlogs/urls.py → blog.urls
+URL Router: EchoBlogs/urls.py → blog.api_urls
     ↓
-blog/urls.py: create pattern
+blog/api_views.py: create post (JWT required)
     ↓
-blog/views.py: post_create() function
+Validate JSON payload and permissions
     ↓
-@login_required: checks session
+Create Post in tenant schema
     ↓
-Validates form data
-    ↓
-Post.objects.create() → username schema
-    ↓
-redirect('post_list') → HTTP 302
-    ↓
-Browser follows redirect
-    ↓
-New request: GET http://username.localhost:8000/blog/
-    ↓
-post_list view queries username schema
-    ↓
-Renders post_list.html with posts
-    ↓
-Response sent to browser
+Return 201 with post JSON
 ```
 
 ---

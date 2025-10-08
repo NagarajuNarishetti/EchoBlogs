@@ -30,13 +30,19 @@ EchoBlogs is built using modern web technologies with a focus on scalability, se
   - **Benefits**: High performance, full PostgreSQL feature support
   - **Use Case**: Database connectivity
 
-## 🎨 Frontend Technologies
+## 🎨 API Layer
 
-### Template Engine
-- **Django Templates**: Built-in template system
-  - **Why**: Integrated with Django, secure by default
-  - **Benefits**: Auto-escaping, template inheritance, filters
-  - **Use Case**: Server-side rendering
+### Django REST Framework
+- **DRF**: API toolkit for Django
+  - **Why**: Rapid API development, serializers, viewsets
+  - **Benefits**: Browsable API, permissions, throttling
+  - **Use Case**: REST endpoints under `/api/`
+
+### Authentication
+- **SimpleJWT**: JWT authentication for DRF
+  - **Why**: Stateless auth for APIs
+  - **Benefits**: Access/refresh tokens, rotation support
+  - **Use Case**: `/api/auth/*` endpoints
 
 ### CSS Framework
 - **Bootstrap 5.3.0**: CSS framework
@@ -50,11 +56,8 @@ EchoBlogs is built using modern web technologies with a focus on scalability, se
   - **Benefits**: Scalable vector icons, easy integration
   - **Use Case**: UI icons and visual elements
 
-### JavaScript
-- **Vanilla JavaScript**: No additional JS frameworks
-  - **Why**: Lightweight, no dependencies, simple interactions
-  - **Benefits**: Fast loading, easy maintenance
-  - **Use Case**: Form interactions, dynamic content
+## 🎨 Frontend (Optional UI)
+- Existing Django templates may be present for basic UI but APIs are the source of truth.
 
 ## 🔧 Development Tools
 
@@ -79,10 +82,10 @@ EchoBlogs is built using modern web technologies with a focus on scalability, se
 ## 🛡️ Security Technologies
 
 ### Authentication
-- **Django Authentication**: Built-in authentication system
-  - **Why**: Secure, well-tested, integrated with Django
-  - **Benefits**: Session management, password hashing, user management
-  - **Use Case**: User authentication and authorization
+- **JWT (SimpleJWT)**: Token-based authentication for APIs
+  - **Why**: Decoupled, stateless clients
+  - **Benefits**: Works with SPAs and mobile apps
+  - **Use Case**: Protect posts endpoints
 
 ### CSRF Protection
 - **Django CSRF Middleware**: Cross-Site Request Forgery protection
@@ -131,10 +134,7 @@ EchoBlogs is built using modern web technologies with a focus on scalability, se
   - **Use Case**: CSS, JavaScript, image serving
 
 ### URL Routing
-- **Django URL Dispatcher**: URL routing system
-  - **Why**: Integrated with Django, flexible routing
-  - **Benefits**: Pattern matching, parameter extraction
-  - **Use Case**: Request routing
+- **Django URL Dispatcher** for DRF endpoints under `/api/`
 
 ## 🔄 Middleware Technologies
 
@@ -167,11 +167,13 @@ psycopg2-binary>=2.9 # PostgreSQL adapter
 
 ### Development Dependencies (Optional)
 ```txt
-pytest>=7.0          # Testing framework
-pytest-django>=4.0   # Django testing integration
-coverage>=7.0        # Code coverage
-black>=23.0          # Code formatting
-flake8>=6.0          # Code linting
+pytest>=7.0            # Testing framework
+pytest-django>=4.0     # Django testing integration
+coverage>=7.0          # Code coverage
+black>=23.0            # Code formatting
+flake8>=6.0            # Code linting
+djangorestframework>=3.15  # REST API framework
+djangorestframework-simplejwt>=5.3  # JWT auth for DRF
 ```
 
 ## 🚀 Deployment Technologies
@@ -277,7 +279,7 @@ flake8>=6.0          # Code linting
   - **Benefits**: Easy editing, GitHub integration
   - **Use Case**: Project documentation
 
-### API Documentation (Future)
+### API Documentation
 - **Swagger/OpenAPI**: API documentation standard
   - **Why**: Standardized API documentation
   - **Benefits**: Interactive documentation, code generation

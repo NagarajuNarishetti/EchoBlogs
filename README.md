@@ -33,7 +33,7 @@ EchoBlogs uses a **schema-based multitenancy** approach:
 
 - **Backend**: Django 5.2+ with django-tenants
 - **Database**: PostgreSQL 14+
-- **Frontend**: Django Templates + Bootstrap 5
+- **API**: Django REST Framework (DRF) with JWT (SimpleJWT)
 - **Authentication**: Django's built-in auth system
 - **Language**: Python 3.12+
 - **Icons**: Bootstrap Icons
@@ -47,20 +47,17 @@ EchoBlogs/
 │   ├── urls.py               # Main URL routing
 │   └── wsgi.py               # WSGI configuration
 ├── accounts/                  # Authentication & user management (SHARED)
-│   ├── views.py              # Login, logout, registration views
-│   ├── urls.py               # Account-related URLs
+│   ├── api_views.py          # Register, login, refresh, me (JWT)
+│   ├── api_urls.py           # Auth API routes under /api/auth/
 │   └── models.py             # User models (if any)
 ├── blog/                     # Blog functionality (TENANT-SPECIFIC)
 │   ├── models.py             # Post model
-│   ├── views.py              # Blog views
-│   └── urls.py               # Blog URLs
+│   ├── api_views.py          # Post list/create/retrieve/update/delete
+│   └── api_urls.py           # Blog API routes under /api/posts/
 ├── tenants/                  # Tenant management
 │   ├── models.py             # Client & Domain models
 │   └── management/           # Custom management commands
-├── templates/                # HTML templates
-│   ├── base.html             # Base template with Bootstrap
-│   ├── home.html             # Landing page
-│   └── accounts/             # Authentication templates
+├── templates/                # Optional HTML templates (legacy UI)
 ├── static/                   # Static files directory
 ├── requirements.txt          # Python dependencies
 └── manage.py                 # Django management script
@@ -144,9 +141,8 @@ EchoBlogs/
      - Call protected endpoints with `Authorization: Bearer <access>`
      - Use tenant subdomain for blog posts APIs
 
-10. **Access the application (optional UI)**
-   - Main site: http://127.0.0.1:8000/
-   - Admin: http://127.0.0.1:8000/admin/
+10. **Access (optional UI and admin)**
+  - Admin: http://127.0.0.1:8000/admin/
 
 ## 📖 Documentation
 
@@ -160,22 +156,20 @@ EchoBlogs/
 
 ## 🎯 How It Works
 
-### 1. User Registration
-- User visits the main site (127.0.0.1:8000)
-- Fills out registration form
-- System creates user account in public schema
+### 1. Registration via API
+- Client calls `POST /api/auth/register/` (public domain)
+- System creates user in public schema
 - New tenant schema is automatically created
-- Domain mapping is established (username.localhost)
+- Domain mapping is established (`<username>.localhost`)
 
 ### 2. Tenant Access
 - User can access their blog via their subdomain
 - Each tenant has isolated database schema
 - Complete data separation between tenants
 
-### 3. Blog Management
-- Users create posts in their tenant schema
-- Posts are completely isolated from other users
-- Modern UI for post creation and management
+### 3. Blog Management (API)
+- Clients call tenant domain endpoints under `/api/posts/`
+- Data is isolated per tenant via domain-based routing
 
 ## 🔧 Configuration
 
@@ -197,6 +191,7 @@ Key settings in `EchoBlogs/settings.py`:
 - `TENANT_APPS`: Apps that run on tenant schemas
 - `TENANT_MODEL`: Points to Client model
 - `TENANT_DOMAIN_MODEL`: Points to Domain model
+- DRF and SimpleJWT configured for API and JWT auth
 
 ## 🧪 Testing
 
