@@ -164,14 +164,19 @@
                         </ul>
                     </li>
                     {% else %}
-                    <li class="nav-item">
+                    <li class="nav-item auth-client-hide" id="nav-login">
                         <a class="nav-link" href="{% url 'login' %}">
                             <i class="bi bi-box-arrow-in-right me-1"></i>Login
                         </a>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item auth-client-hide" id="nav-register">
                         <a class="nav-link" href="{% url 'register' %}">
                             <i class="bi bi-person-plus me-1"></i>Sign Up
+                        </a>
+                    </li>
+                    <li class="nav-item d-none" id="nav-logout">
+                        <a class="nav-link" href="{% url 'logout' %}">
+                            <i class="bi bi-box-arrow-right me-1"></i>Logout
                         </a>
                     </li>
                     {% endif %}
@@ -240,6 +245,21 @@
             if (!username) return window.location.origin;
             return `http://${username.toLowerCase()}.localhost:8000`;
         };
+
+        // Client-side navbar toggle: if JWT present, show Logout even if server session not available on this subdomain
+        (function () {
+            try {
+                var access = window.echoblogsAuth.getAccessToken();
+                if (access) {
+                    var loginItem = document.getElementById('nav-login');
+                    var regItem = document.getElementById('nav-register');
+                    var logoutItem = document.getElementById('nav-logout');
+                    if (loginItem) loginItem.classList.add('d-none');
+                    if (regItem) regItem.classList.add('d-none');
+                    if (logoutItem) logoutItem.classList.remove('d-none');
+                }
+            } catch (e) { }
+        })();
     </script>
     {% block extra_js %}{% endblock %}
 </body>

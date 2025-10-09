@@ -80,6 +80,17 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# ---------------- COOKIES / CSRF (share session across subdomains) ----------------
+# Allow the session and CSRF cookies to be valid on all *.localhost subdomains so
+# that after logging in on the public domain, tenant subdomains recognize the session.
+SESSION_COOKIE_DOMAIN = '.localhost'
+CSRF_COOKIE_DOMAIN = '.localhost'
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+    'http://*.localhost:8000',
+]
+
 # ---------------- URLS & WSGI ----------------
 ROOT_URLCONF = 'EchoBlogs.urls'
 WSGI_APPLICATION = 'EchoBlogs.wsgi.application'
@@ -118,3 +129,9 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
+
+# ---------------- AUTH REDIRECTS ----------------
+# Ensure Django's login_required decorator redirects to our correct views
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'

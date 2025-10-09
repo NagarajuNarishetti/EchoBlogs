@@ -1,4 +1,4 @@
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, login
 from django.db import connection
 from rest_framework import permissions, status
 from rest_framework.response import Response
@@ -29,6 +29,9 @@ class RegisterAPIView(APIView):
         domain.is_primary = True
         domain.save()
 
+        # Create a Django session so templates on subdomains can see request.user
+        login(request, user)
+
         refresh = RefreshToken.for_user(user)
         return Response({
             "user": UserSerializer(user).data,
@@ -49,6 +52,9 @@ class LoginAPIView(APIView):
         user = authenticate(request, username=username, password=password)
         if not user:
             return Response({"detail": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create a Django session so server-rendered pages recognize authentication
+        login(request, user)
 
         refresh = RefreshToken.for_user(user)
         return Response({
